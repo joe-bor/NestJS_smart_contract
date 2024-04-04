@@ -46,7 +46,7 @@ export class AppService {
     console.log(`\nHash: ${hash}`);
     console.log(`\nReceipt: ${receipt}`);
 
-    return receipt;
+    return { hash, receipt };
   }
 
   async checkMinterRole(address: string) {
