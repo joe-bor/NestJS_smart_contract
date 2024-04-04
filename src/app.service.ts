@@ -15,8 +15,12 @@ export class AppService {
     });
   }
 
-  getTransactionReceipt(hash: string) {
-    throw new Error('Method not implemented.');
+  async getTransactionReceipt(hash: string) {
+    // tx hash 0x662019ce6e580e35773a6091f005fa5373b752ee8e0881ebf017d3f5fa656970
+    const receipt = await this.publicClient.getTransactionReceipt({
+      hash: hash,
+    });
+    return receipt;
   }
 
   async getTokenBalance(address: string): Promise<string> {
@@ -30,8 +34,13 @@ export class AppService {
     return formatEther(tokenBalance);
   }
 
-  getTotalSupply() {
-    throw new Error('Method not implemented.');
+  async getTotalSupply() {
+    const totalSupply = await this.publicClient.readContract({
+      address: this.getContractAddress(),
+      abi: tokenJson.abi,
+      functionName: 'totalSupply',
+    });
+    return formatEther(totalSupply);
   }
 
   getHello(): string {
