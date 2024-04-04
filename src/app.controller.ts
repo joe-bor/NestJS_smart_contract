@@ -1,5 +1,6 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, Param, Query, Post, Body } from '@nestjs/common';
 import { AppService } from './app.service';
+import { MintTokenDto } from './dtos/mintToken.dto';
 
 @Controller()
 export class AppController {
@@ -33,5 +34,20 @@ export class AppController {
   @Get('transaction-receipt')
   async getTransactionReceipt(@Query('hash') hash: string) {
     return { result: await this.appService.getTransactionReceipt(hash) };
+  }
+
+  @Get('server-wallet-address')
+  async getServerWalletAddress() {
+    return { result: await this.appService.getServerWalletAddress() };
+  }
+
+  @Get('check-minter-role')
+  async checkMinterRole(@Query('address') address: string) {
+    return { result: await this.appService.checkMinterRole(address) };
+  }
+
+  @Post('mint-tokens')
+  async mintTokens(@Body() body: MintTokenDto) {
+    return { result: await this.appService.mintTokens(body.address) };
   }
 }

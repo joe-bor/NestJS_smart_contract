@@ -1,18 +1,76 @@
 import { Injectable } from '@nestjs/common';
-import { createPublicClient, http, formatEther } from 'viem';
+import {
+  createPublicClient,
+  http,
+  formatEther,
+  createWalletClient,
+  Address,
+} from 'viem';
 import { sepolia } from 'viem/chains';
 import * as tokenJson from './assets/MyToken.json';
 import { ConfigService } from '@nestjs/config';
+import { PublicClient, WalletClient } from 'viem/_types';
+import { privateKeyToAccount } from 'viem/accounts';
 
 @Injectable()
 export class AppService {
   publicClient;
+  walletClient: WalletClient;
 
   constructor(private configService: ConfigService) {
     this.publicClient = createPublicClient({
       chain: sepolia,
       transport: http(this.configService.get<string>('RPC_ENDPOINT_URL')),
     });
+
+    this.walletClient = createWalletClient({
+      chain: sepolia,
+      transport: http(this.configService.get<string>('RPC_ENDPOINT_URL')),
+      key: process.env.PRIVATE_KEY,
+      account: privateKeyToAccount(`0x${process.env.PRIVATE_KEY}`),
+    });
+  }
+
+  async mintTokens(address: any) {
+    const hash = await this.walletClient.writeContract({
+      address: process.env.TOKEN_ADDRESS as Address,
+      account: privateKeyToAccount(`0x${process.env.PRIVATE_KEY}`),
+      chain: sepolia,
+      abi: tokenJson.abi,
+      functionName: 'mint',
+      args: [address, 1n],
+    });
+
+    const receipt = await this.publicClient.waitForTransactionReceipt({ hash });
+    console.log(`\nMinting tokens to ${address}`);
+    console.log(`\nHash: ${hash}`);
+    console.log(`\nReceipt: ${receipt}`);
+
+    return receipt;
+  }
+
+  async checkMinterRole(address: string) {
+    // grab the minter role keccak hash
+    // pass it to _checkRole
+    const minterRoleHash = await this.publicClient.readContract({
+      address: process.env.TOKEN_ADDRESS,
+      abi: tokenJson.abi,
+      functionName: 'MINTER_ROLE',
+    });
+    const role: Promise<boolean> = await this.publicClient.readContract({
+      address: process.env.TOKEN_ADDRESS,
+      abi: tokenJson.abi,
+      functionName: 'hasRole',
+      args: [minterRoleHash, address],
+    });
+
+    return role;
+  }
+
+  async getServerWalletAddress() {
+    const addresses = await this.walletClient.getAddresses();
+
+    return addresses[0];
   }
 
   async getTransactionReceipt(hash: string) {
@@ -48,7 +106,7 @@ export class AppService {
   }
 
   getContractAddress() {
-    return '0xD38d61ab91E134D01a6DbB48b0D2a0C181B4B936';
+    return this.configService.get<string>('TOKEN_ADDRESS');
   }
 
   async getTokenName(): Promise<any> {
